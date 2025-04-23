@@ -1,0 +1,363 @@
+openapi: 3.0.3
+info:
+  title: ITS 2426
+  description: |-
+    Esame Fullstack
+  version: '1'
+servers:
+  - url: http://localhost:3000/api
+tags:
+  - name: classrooms
+  - name: users
+  - name: auth
+paths:
+  /classrooms:
+    post:
+      tags:
+        - classrooms
+      operationId: createClassroom
+      summary: Creazione di una classe
+      description: DISPONIBILE SOLO PER DOCENTI. Crea una nuova classe
+      security:
+       - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/Classroom'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Classroom'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: "L'utente non è un docente"
+        '400':
+          description: viene tornato se la validazione fallisce
+    get:
+      tags:
+        - classrooms
+      operationId: listClassrooms
+      summary: Lista delle classi
+      security:
+       - bearerAuth: []
+      description: "Torna la lista delle classi. DOCENTE: torna tutte le classi create dal docente. STUDENTE: torna tutte le classi di cui fa parte"
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Classroom'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /classrooms/{classroomId}/assigments:
+    post:
+      tags:
+        - classrooms
+      operationId: createAssigment
+      summary: Creazione di una attività
+      description: DISPONIBILE SOLO PER DOCENTI. Aggiunge un'attività alla classe
+      security:
+       - bearerAuth: []
+      parameters:
+      - in: path
+        name: classroomId
+        schema:
+          type: string
+        required: true
+        description: id della classroom a cui aggiungere l'attività
+      requestBody:
+        $ref: '#/components/requestBodies/Assignment'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: "L'utente non è un docente, l'id della classroom non esiste o la classe è stata creata da un altro docente"
+        '400':
+          description: viene tornato se la validazione fallisce
+    get:
+      tags:
+        - classrooms
+      operationId: listAssignments
+      summary: Creazione di una attività
+      description: Torna la lista delle attività assegnate alla classse
+      security:
+       - bearerAuth: []
+      parameters:
+      - in: path
+        name: classroomId
+        schema:
+          type: string
+        required: true
+        description: id della classroom a cui aggiungere l'attività
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: "L'id della classroom non esiste, lo studente non è iscritto o il docente non è quello che ha creato la classe"
+  /classrooms/{classroomId}/assignments/{id}:
+    patch:
+      tags:
+        - classrooms
+      operationId: completeAssignment
+      summary: Completamento di una attività
+      description: DISPONIBILE SOLO PER STUDENTI. Segna l'attività come completata
+      security:
+       - bearerAuth: []
+      parameters:
+      - in: path
+        name: classroomId
+        schema:
+          type: string
+        required: true
+        description: id della classroom a cui aggiungere l'attività
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+        description: id dell'attività da completare
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: "L'utente non è uno studente, l'id della classroom non esiste, l'id dell'attività non esiste o l'attività non è associata a quella classroom"
+        '400':
+          description: viene tornato se l'utente ha già completato l'attività
+  /users:
+    get:
+      tags:
+        - users
+      summary: List users
+      description: "Ritorna la lista di utenti registrati all'applicazione. La lista è filtrabile per ruolo tramite il queryparam, di default vengono tornati tutti gli utenti."
+      operationId: listUsers
+      security:
+       - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: ['student', 'teacher']
+          required: true
+          description: filtra gli utenti a seconda del ruolo
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '400':
+          description: viene tornato se il query param non è un valore valido
+  /login:
+    post:
+      tags:
+        - auth
+      summary: Login
+      operationId: loginUser
+      requestBody:
+        $ref: '#/components/requestBodies/Login'
+      responses:
+        '200':
+          description: successful operationì
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+        '400':
+          description: Invalid username/password supplied
+  /register:
+    post:
+      tags:
+        - auth
+      summary: Registrazione
+      description: ''
+      operationId: registerUser
+      requestBody:
+        $ref: '#/components/requestBodies/Register'
+      responses:
+        '201':
+          description: successful operationì
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+  schemas:
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: "string"
+          description: "id univoco generato lato server"
+        title:
+          type: "string"
+        studentsCount:
+          type: "integer"
+        completedCount:
+          type: "integer"
+        completed:
+          type: "boolean"
+          description: "SOLO PER STUDENTI: descrive se lo studente ha già completato l'attività"
+        createdAt:
+          type: string
+          format: date
+          description: "data di creazione dell'attività"
+        createdBy:
+          $ref: '#/components/schemas/User'
+    Classroom:
+      type: object
+      properties:
+        id:
+          type: "string"
+          description: "id univoco generato lato server"
+        name:
+          type: "string"
+          description: "nome della classe"
+        studentsCount:
+          type: integer
+          description: "numero di studenti nella classe"
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'someUserId'
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: James
+        role:
+          type: string
+          enum: ['student', 'teacher']
+          example: student
+        fullName:
+          type: string
+          example: John James
+        picture:
+          type: string
+          example: 'https//somedomain.com/somepicture.png'
+    Login:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          description: JWT token
+  requestBodies:
+    Login:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+                example: 'test@test.com'
+              password:
+                type: string
+                example: 'Password1!'
+            required:
+              - username
+              - password
+    Register:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              firstName:
+                type: string
+                example: John
+              lastName:
+                type: string
+                example: James
+              role:
+                type: string
+                enum: ['student', 'teacher']
+                example: student
+              picture:
+                type: string
+                example: 'https//somedomain.com/somepicture.png'
+              username:
+                type: string
+              password:
+                type: string
+            required:
+              - firstName
+              - lastName
+              - picture
+              - role
+              - username
+              - password
+    Assignment:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+                example: "Completare esercizio"
+                description: descrizione dell'attività
+            required:
+              - title
+    Classroom:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Frontend"
+                description: nome della classe
+              students:
+                type: array
+                description: "Lista degli id degli studenti da aggiungere"
+                example: ["id1", "id2"]
+                items:
+                  type: string
+            required:
+              - title
+              - students
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
